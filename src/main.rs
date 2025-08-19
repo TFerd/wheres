@@ -9,7 +9,7 @@ use std::{
 const CORRECT_FORMAT: &'static str = "wheres [options]... <filename>";
 
 fn main() {
-    let mut output: Option<String> = None;
+    let mut output_file: Option<File> = None;
     let mut recurse = true;
     let mut verbose = false;
     let writer = std::io::stdout();
@@ -31,9 +31,10 @@ fn main() {
             "-r" | "--recursive=false" => recurse = false,
             "-o" | "--output" => {
                 if let Some(output_path) = args.next() {
-                    output = Some(output_path);
+                    output_file = Some(File::create(output_path).unwrap());
                 } else {
-                    panic!("No value specified for --output");
+                    println!("No value specified for --output");
+                    return;
                 }
             }
             _ => {
@@ -54,12 +55,6 @@ fn main() {
 
     let mut search_queue = VecDeque::<PathBuf>::new();
     let mut searched = HashSet::<PathBuf>::new();
-
-    let output_file = if let Some(output) = output {
-        Some(File::create(output).unwrap())
-    } else {
-        None
-    };
 
     if let Some(home_dir) = home_dir() {
         search_queue.push_front(home_dir);
@@ -85,10 +80,24 @@ fn main() {
         for item in next.read_dir().unwrap() {
             let item_path = item.unwrap().path();
 
-            if item_path.is_dir() && recurse == true {
+            if recurse == true && item_path.is_dir() && !searched.contains(&item_path) {
                 search_queue.push_front(item_path);
-            } else if item_path.to_str().unwrap().contains(search_query.as_str()) {
-                writeln!(&writer, "{:?}", item_path.to_str()).unwrap();
+            } else if item_path
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .contains(search_query.as_str())
+            {
+                match output_file {
+                    Some(ref mut x) => {
+                        x.write(item_path.to_str().unwrap().as_bytes()).unwrap();
+                        x.write(b"\n").unwrap();
+                    }
+                    None => {
+                        writeln!(&writer, "{:?}", item_path.to_str().unwrap()).unwrap();
+                    }
+                }
             }
         }
 
