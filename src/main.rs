@@ -85,10 +85,16 @@ fn main() {
         for item in next.read_dir().unwrap() {
             let item_path = item.unwrap().path();
 
-            if item_path.is_dir() && recurse == true {
+            if recurse == true && item_path.is_dir() && !searched.contains(&item_path) {
                 search_queue.push_front(item_path);
-            } else if item_path.to_str().unwrap().contains(search_query.as_str()) {
-                writeln!(&writer, "{:?}", item_path.to_str()).unwrap();
+            } else if item_path
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .contains(search_query.as_str())
+            {
+                writeln!(&writer, "{:?}", item_path.to_str().unwrap()).unwrap();
             }
         }
 
