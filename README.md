@@ -1,1 +1,1 @@
-- [] implement fuzzy find with fuziness option
+- [ ] implement fuzzy find with fuziness option
